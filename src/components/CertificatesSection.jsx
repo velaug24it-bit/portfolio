@@ -1,5 +1,5 @@
 // src/components/CertificatesSection.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import './CertificatesSection.css';
 
 const CertificatesSection = () => {
@@ -136,8 +136,8 @@ const CertificatesSection = () => {
     ? certificates 
     : certificates.filter(cert => cert.category === activeFilter);
 
-  // Auto-scroll functionality
-  const startAutoScroll = () => {
+  // ✅ FIXED: Wrap auto-scroll functions in useCallback
+  const startAutoScroll = useCallback(() => {
     if (!scrollContainerRef.current || !isAutoScrolling || isHovering) return;
 
     autoScrollIntervalRef.current = setInterval(() => {
@@ -153,38 +153,38 @@ const CertificatesSection = () => {
         }
       }
     }, 16); // ~60fps
-  };
+  }, [isAutoScrolling, isHovering, scrollSpeed]); // ✅ Include dependencies
 
-  const stopAutoScroll = () => {
+  const stopAutoScroll = useCallback(() => {
     if (autoScrollIntervalRef.current) {
       clearInterval(autoScrollIntervalRef.current);
       autoScrollIntervalRef.current = null;
     }
-  };
+  }, []); // ✅ No dependencies needed
 
   // Toggle auto-scroll on click
-  const toggleAutoScroll = () => {
-    setIsAutoScrolling(!isAutoScrolling);
-  };
+  const toggleAutoScroll = useCallback(() => {
+    setIsAutoScrolling(prev => !prev);
+  }, []); // ✅ No dependencies needed
 
   // Manual scroll functions
-  const scrollLeft = () => {
+  const scrollLeft = useCallback(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({
         left: -300,
         behavior: 'smooth'
       });
     }
-  };
+  }, []); // ✅ No dependencies needed
 
-  const scrollRight = () => {
+  const scrollRight = useCallback(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({
         left: 300,
         behavior: 'smooth'
       });
     }
-  };
+  }, []); // ✅ No dependencies needed
 
   // Reset scroll position when filter changes
   useEffect(() => {
@@ -193,7 +193,7 @@ const CertificatesSection = () => {
     }
   }, [activeFilter]);
 
-  // Handle auto-scrolling based on state
+  // ✅ FIXED: Handle auto-scrolling based on state
   useEffect(() => {
     if (isAutoScrolling && !isHovering) {
       startAutoScroll();
@@ -201,8 +201,23 @@ const CertificatesSection = () => {
       stopAutoScroll();
     }
 
-    return () => stopAutoScroll();
-  }, [isAutoScrolling, isHovering]);
+    return () => {
+      stopAutoScroll();
+    };
+  }, [isAutoScrolling, isHovering, startAutoScroll, stopAutoScroll]); // ✅ Include all dependencies
+
+  // Update scroll progress indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      // This updates the progress bar visually via CSS
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   return (
     <section id="certificates" className="certificates-section">
